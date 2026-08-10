@@ -1,7 +1,3 @@
-const API_URL = window.location.origin;
-
-let botCount = 0;
-
 document.getElementById('startBtn').addEventListener('click', startBots);
 document.getElementById('stopBtn').addEventListener('click', stopBots);
 document.getElementById('chatSendBtn').addEventListener('click', sendChat);
@@ -9,15 +5,18 @@ document.getElementById('commandSendBtn').addEventListener('click', sendCommand)
 
 async function startBots() {
     const serverIp = document.getElementById('serverIp').value;
-    const serverPort = parseInt(document.getElementById('serverPort').value);
+    const serverPort = document.getElementById('serverPort').value || 25565;
     const botPrefix = document.getElementById('botPrefix').value || 'Bot';
-    const count = parseInt(document.getElementById('botCount').value) || 10;
+    const count = document.getElementById('botCount').value || 5;
     const version = document.getElementById('version').value || '1.21.4';
 
     if (!serverIp) {
         alert('Podaj IP serwera!');
         return;
     }
+
+    document.getElementById('statusText').textContent = '🔄 Łączenie...';
+    document.getElementById('statusText').style.color = '#ffa657';
 
     const res = await fetch('/api/start', {
         method: 'POST',
@@ -27,21 +26,18 @@ async function startBots() {
 
     const data = await res.json();
     if (data.success) {
-        botCount = count;
         document.getElementById('statusText').textContent = '🟢 Połączono';
         document.getElementById('statusText').style.color = '#3fb950';
-        document.getElementById('botCountDisplay').textContent = count;
-        fetchBots();
     } else {
         alert('Błąd: ' + data.error);
+        document.getElementById('statusText').textContent = '🔴 Błąd';
+        document.getElementById('statusText').style.color = '#f85149';
     }
 }
 
 async function stopBots() {
     const res = await fetch('/api/stop', { method: 'POST' });
-    const data = await res.json();
-    if (data.success) {
-        botCount = 0;
+    if (res.ok) {
         document.getElementById('statusText').textContent = '🔴 Zatrzymano';
         document.getElementById('statusText').style.color = '#f85149';
         document.getElementById('botCountDisplay').textContent = '0';
@@ -54,17 +50,14 @@ async function sendChat() {
     const msg = input.value.trim();
     if (!msg) return;
 
-    const res = await fetch('/api/chat', {
+    await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: msg })
     });
 
-    const data = await res.json();
-    if (data.success) {
-        input.value = '';
-        addChatLog('System', '📨 Wysłano: ' + msg);
-    }
+    input.value = '';
+    addChatLog('System', '📨 Wysłano: ' + msg);
 }
 
 async function sendCommand() {
@@ -72,32 +65,14 @@ async function sendCommand() {
     const cmd = input.value.trim();
     if (!cmd) return;
 
-    const res = await fetch('/api/command', {
+    await fetch('/api/command', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command: cmd })
     });
 
-    const data = await res.json();
-    if (data.success) {
-        input.value = '';
-        addChatLog('System', '⚡ Wykonano: ' + cmd);
-    }
-}
-
-async function fetchBots() {
-    const res = await fetch('/api/bots');
-    const data = await res.json();
-    if (data.bots) {
-        const ul = document.getElementById('botListUl');
-        ul.innerHTML = '';
-        data.bots.forEach(bot => {
-            const li = document.createElement('li');
-            const status = bot.online ? '🟢 online' : '🔴 offline';
-            li.innerHTML = `<span class="${bot.online ? 'online' : 'offline'}">${bot.name}</span> - ${status}`;
-            ul.appendChild(li);
-        });
-    }
+    input.value = '';
+    addChatLog('System', '⚡ Wykonano: ' + cmd);
 }
 
 function addChatLog(sender, msg) {
@@ -109,21 +84,43 @@ function addChatLog(sender, msg) {
     log.scrollTop = log.scrollHeight;
 }
 
-// WebSocket do odbierania wiadomości z chatów botów
-let ws;
+function updateBotList(bots) {
+    const ul = document.getElementById('botListUl');
+    ul.innerHTML = '';
+    bots.forEach(bot => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span class="${bot.online ? 'online' : 'offline'}">${bot.name}</span> - ${bot.online ? '🟢 online' : '🔴 offline'}`;
+        ul.appendChild(li);
+    });
+}
 
+// WebSocket
+let ws;
 function connectWebSocket() {
     ws = new WebSocket(`ws://${window.location.host}`);
     ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        if (data.type === 'status') {
+            document.getElementById('botCountDisplay').textContent = data.connected || 0;
+            if (data.event === 'join') {
+                addChatLog('System', `✅ ${data.bot} dołączył (${data.connected}/${data.total})`);
+            }
+            if (data.event === 'leave') {
+                addChatLog('System', `❌ ${data.bot} wyszedł: ${data.reason || 'rozłączono'}`);
+            }
+        }
         if (data.type === 'chat') {
             addChatLog(data.bot, data.message);
-        } else if (data.type === 'status') {
-            document.getElementById('botCountDisplay').textContent = data.count;
-            fetchBots();
         }
     };
     ws.onclose = () => setTimeout(connectWebSocket, 3000);
 }
 
 connectWebSocket();
+
+// Odświeżanie listy botów co 3s
+setInterval(async () => {
+    const res = await fetch('/api/bots');
+    const data = await res.json();
+    if (data.bots) updateBotList(data.bots);
+}, 3000);
