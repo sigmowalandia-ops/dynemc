@@ -9,37 +9,37 @@
 <body>
     <div class="container">
         <h1>⚔️ Minecraft Bot Panel</h1>
-        
+
         <div class="config">
-            <input type="text" id="serverIp" placeholder="IP serwera (np. play.example.com)">
+            <input type="text" id="serverIp" placeholder="IP serwera">
             <input type="number" id="serverPort" placeholder="Port" value="25565">
-            <input type="text" id="botPrefix" placeholder="Prefiks nazwy botów (np. Bot)">
-            <input type="number" id="botCount" placeholder="Liczba botów" value="10">
+            <input type="text" id="botPrefix" placeholder="Prefiks (np. Bot)" value="Bot">
+            <input type="number" id="botCount" placeholder="Liczba botów" value="5">
             <input type="text" id="version" placeholder="Wersja (np. 1.21.4)" value="1.21.4">
-            <button id="startBtn">🚀 Uruchom boty</button>
-            <button id="stopBtn">⏹ Zatrzymaj boty</button>
+            <button id="startBtn">🚀 Uruchom</button>
+            <button id="stopBtn">⏹ Zatrzymaj</button>
         </div>
 
         <div class="status">
-            <p>Status: <span id="statusText">Niepołączono</span></p>
-            <p>Boty online: <span id="botCountDisplay">0</span></p>
+            <p>Status: <span id="statusText">🔴 Rozłączony</span></p>
+            <p>Boty: <span id="botCountDisplay">0</span></p>
         </div>
 
         <div class="chat">
             <h3>💬 Chat</h3>
             <div id="chatLog"></div>
-            <input type="text" id="chatInput" placeholder="Wiadomość do wysłania przez wszystkie boty">
+            <input type="text" id="chatInput" placeholder="Wiadomość">
             <button id="chatSendBtn">📨 Wyślij</button>
         </div>
 
         <div class="commands">
-            <h3>🛠 Komendy dla botów</h3>
+            <h3>🛠 Komendy</h3>
             <input type="text" id="commandInput" placeholder="Komenda (np. /spawn)">
             <button id="commandSendBtn">⚡ Wykonaj</button>
         </div>
 
         <div class="botList">
-            <h3>📋 Lista botów</h3>
+            <h3>📋 Boty</h3>
             <ul id="botListUl"></ul>
         </div>
     </div>
